@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -277,5 +278,42 @@ func TestAuthDisabledWhenNoToken(t *testing.T) {
 	handler.ServeHTTP(rec, req)
 	if rec.Code != 200 {
 		t.Errorf("no token configured: got %d, want 200", rec.Code)
+	}
+}
+
+func TestAddRemoveDir(t *testing.T) {
+	origConfig := config
+	defer func() { config = origConfig }()
+
+	tmpDir := t.TempDir()
+	origHome := os.Getenv("HOME")
+	os.Setenv("HOME", tmpDir)
+	defer os.Setenv("HOME", origHome)
+	os.MkdirAll(filepath.Join(tmpDir, ".config", "claude-monitor"), 0755)
+
+	config = Config{Port: 7777, AllowedDirs: []string{"~/existing"}}
+
+	// Add a real directory
+	req := httptest.NewRequest("POST", "/api/dirs", strings.NewReader(`{"dir":"`+tmpDir+`"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handleAddDir(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("add dir: got %d, body: %s", rec.Code, rec.Body.String())
+	}
+	if len(config.AllowedDirs) != 2 {
+		t.Fatalf("dirs = %v, want 2 entries", config.AllowedDirs)
+	}
+
+	// Remove it
+	req = httptest.NewRequest("DELETE", "/api/dirs", strings.NewReader(`{"dir":"`+tmpDir+`"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec = httptest.NewRecorder()
+	handleRemoveDir(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("remove dir: got %d", rec.Code)
+	}
+	if len(config.AllowedDirs) != 1 {
+		t.Fatalf("dirs after remove = %v, want 1 entry", config.AllowedDirs)
 	}
 }

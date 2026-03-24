@@ -359,6 +359,16 @@ func main() {
 	mux.HandleFunc("/restart/", handleRestart)
 	mux.HandleFunc("/api/instances", handleAPIInstances)
 	mux.HandleFunc("/api/output/", handleAPIOutput)
+	mux.HandleFunc("/api/dirs", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "POST":
+			handleAddDir(w, r)
+		case "DELETE":
+			handleRemoveDir(w, r)
+		default:
+			http.Error(w, "method not allowed", 405)
+		}
+	})
 	mux.HandleFunc("/ws/", handleWS)
 
 	handler := authMiddleware(mux)
@@ -1117,6 +1127,59 @@ func jsonError(w http.ResponseWriter, msg string, code int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(map[string]string{"status": "error", "message": msg})
+}
+
+func handleAddDir(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "POST only", 405)
+		return
+	}
+	var body struct {
+		Dir string `json:"dir"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Dir == "" {
+		jsonError(w, "dir required", 400)
+		return
+	}
+	expanded := expandDir(body.Dir)
+	info, err := os.Stat(expanded)
+	if err != nil || !info.IsDir() {
+		jsonError(w, "directory does not exist", 400)
+		return
+	}
+	for _, d := range config.AllowedDirs {
+		if expandDir(d) == expanded {
+			jsonError(w, "directory already added", 400)
+			return
+		}
+	}
+	config.AllowedDirs = append(config.AllowedDirs, body.Dir)
+	persistConfig()
+	jsonOK(w, "directory added")
+}
+
+func handleRemoveDir(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "DELETE" {
+		http.Error(w, "DELETE only", 405)
+		return
+	}
+	var body struct {
+		Dir string `json:"dir"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Dir == "" {
+		jsonError(w, "dir required", 400)
+		return
+	}
+	expanded := expandDir(body.Dir)
+	filtered := make([]string, 0, len(config.AllowedDirs))
+	for _, d := range config.AllowedDirs {
+		if expandDir(d) != expanded {
+			filtered = append(filtered, d)
+		}
+	}
+	config.AllowedDirs = filtered
+	persistConfig()
+	jsonOK(w, "directory removed")
 }
 
 var tmpl = template.Must(template.New("index").Parse(`<!DOCTYPE html>
