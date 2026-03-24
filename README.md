@@ -6,7 +6,11 @@ A web dashboard for spawning, monitoring, and managing multiple Claude Code sess
 
 ## Motivation
 
-Claude Code's built-in remote control feature is unreliable -- it drops connections and loses state. claude-monitor gives you real PTY-backed terminal access to each session via a web browser, so you can reliably watch and interact with multiple Claude agents from your phone, tablet, or another machine.
+I'm a full-time dev that's building [Inkami](https://inkami.app) in my spare time. This means that when I'm running multiple Claude Code instances and running chores, I'd like to make sure Claude is doing the right thing. Alas, as cool as Claude Code's remote-control is, it's horribly unreliable, and I ended up being far away from my desktop and stuck without access to the claude running on my desktop.
+
+So, I built this small helper server. Start it up, and spawn any Claude Code instances with remote control. Each time it gets stuck, you just restart it. If you don't know if Claude is stuck or working on something, just go see the terminal output for any session.
+
+Easy.
 
 ## Features
 
@@ -34,7 +38,7 @@ go build -o claude-monitor .
 
 ## Quick start
 
-Run `claude-monitor` -- the first run launches an interactive setup wizard. Then open `http://localhost:7777`.
+Run `claude-monitor` -- the first run launches an interactive setup wizard. Then starts a server on the port of your choice. I use it with my [Tasilscale](https://tailscale.com/) setup, so I've made it easy to set up. If you're also using Tailscale, the startup wizard will detect it and install the correct HTTPS certs automatically.
 
 ## Configuration
 

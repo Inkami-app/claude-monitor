@@ -1626,11 +1626,32 @@ async function removeDir(dir) {
   }
 }
 
+function renderInstances(list) {
+  const container = document.getElementById('instances');
+  if (!list || list.length === 0) {
+    container.innerHTML = '<div class="empty">No active sessions</div>';
+    return;
+  }
+  container.innerHTML = list.map(inst => {
+    const actions = inst.status === 'running'
+      ? '<button class="btn-kill" onclick="event.stopPropagation();action(\'kill\',\'' + inst.name + '\',this)">Kill</button>' +
+        '<button class="btn-restart" onclick="event.stopPropagation();action(\'restart\',\'' + inst.name + '\',this)">Restart</button>'
+      : '<button class="btn-resume" onclick="event.stopPropagation();action(\'resume\',\'' + inst.name + '\',this)">Resume</button>';
+    const meta = inst.dir + (inst.status === 'running' ? '<span>pid ' + inst.pid + '</span>' : '');
+    return '<div class="card" onclick="location.href=\'/session/' + inst.name + '\'">' +
+      '<div class="card-header">' +
+        '<span class="card-name">' + inst.name + '</span>' +
+        '<span class="badge badge-' + inst.status + '">' + inst.status + '</span>' +
+      '</div>' +
+      '<div class="card-meta"><span>' + meta + '</span></div>' +
+      '<div class="card-actions">' + actions + '</div>' +
+    '</div>';
+  }).join('');
+}
+
 setInterval(() => {
-  fetch('/api/instances').then(r => r.json()).then(() => {
-    location.reload();
-  }).catch(() => {});
-}, 10000);
+  fetch('/api/instances').then(r => r.json()).then(renderInstances).catch(() => {});
+}, 5000);
 </script>
 
 </body>
