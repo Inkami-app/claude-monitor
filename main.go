@@ -1187,26 +1187,26 @@ var tmpl = template.Must(template.New("index").Parse(`<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<meta name="theme-color" content="#05060f">
+<meta name="theme-color" content="#0d1117">
 <title>claude-monitor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #05060f;
-    --surface: rgba(0, 229, 255, 0.04);
-    --border: rgba(0, 229, 255, 0.12);
-    --border-hi: rgba(0, 229, 255, 0.3);
-    --cyan: #00e5ff;
-    --cyan-dim: #00e5ff99;
-    --green: #00ff88;
-    --green-dim: rgba(0, 255, 136, 0.15);
-    --red: #ff2d55;
-    --red-dim: rgba(255, 45, 85, 0.15);
-    --amber: #ffb300;
-    --amber-dim: rgba(255, 179, 0, 0.15);
-    --text: #c8d6e5;
-    --text-dim: #4a5568;
+    --bg: #0d1117;
+    --surface: rgba(255, 255, 255, 0.04);
+    --border: rgba(255, 255, 255, 0.1);
+    --border-hi: rgba(255, 255, 255, 0.2);
+    --accent: #58a6ff;
+    --accent-dim: rgba(88, 166, 255, 0.15);
+    --green: #3fb950;
+    --green-dim: rgba(63, 185, 80, 0.15);
+    --red: #f85149;
+    --red-dim: rgba(248, 81, 73, 0.15);
+    --amber: #d29922;
+    --amber-dim: rgba(210, 153, 34, 0.15);
+    --text: #e2e8f0;
+    --text-secondary: #8b949e;
     --mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
   }
 
@@ -1215,103 +1215,105 @@ var tmpl = template.Must(template.New("index").Parse(`<!DOCTYPE html>
   body {
     font-family: var(--mono);
     background: var(--bg); color: var(--text);
-    padding: 1.25rem; padding-bottom: 6rem;
+    padding: 2rem; padding-bottom: 6rem;
     -webkit-text-size-adjust: 100%;
     min-height: 100vh;
-    position: relative;
-  }
-
-  /* Scanline overlay */
-  body::after {
-    content: '';
-    position: fixed; inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0, 229, 255, 0.015) 2px,
-      rgba(0, 229, 255, 0.015) 4px
-    );
-    pointer-events: none;
-    z-index: 9999;
   }
 
   /* Title */
   .title {
-    font-size: 0.7rem;
+    font-size: 1rem;
     font-weight: 700;
-    color: var(--cyan);
-    text-transform: uppercase;
-    letter-spacing: 0.25em;
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.75rem;
+    color: var(--text);
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
     border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .title::before {
-    content: '';
-    display: inline-block;
-    width: 6px; height: 6px;
-    background: var(--cyan);
-    border-radius: 50%;
-    box-shadow: 0 0 8px var(--cyan), 0 0 16px var(--cyan);
-    animation: pulse 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--cyan), 0 0 16px var(--cyan); }
-    50% { opacity: 0.5; box-shadow: 0 0 4px var(--cyan); }
   }
 
   /* Toast */
   .toast {
     position: fixed; top: 0; left: 0; right: 0;
-    padding: 0.75rem 1.25rem;
-    font-size: 0.75rem; font-family: var(--mono);
+    padding: 0.85rem 1.5rem;
+    font-size: 0.85rem; font-family: var(--mono);
     font-weight: 500;
     z-index: 100;
     transform: translateY(-100%);
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     pointer-events: none;
     text-align: center;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.02em;
   }
   .toast.ok {
     background: var(--green-dim);
     color: var(--green);
-    border-bottom: 1px solid rgba(0, 255, 136, 0.3);
+    border-bottom: 1px solid rgba(63, 185, 80, 0.3);
   }
   .toast.err {
     background: var(--red-dim);
     color: var(--red);
-    border-bottom: 1px solid rgba(255, 45, 85, 0.3);
+    border-bottom: 1px solid rgba(248, 81, 73, 0.3);
   }
   .toast.show { transform: translateY(0); }
 
   /* Section labels */
   .section-label {
-    font-size: 0.6rem; color: var(--text-dim);
-    text-transform: uppercase; letter-spacing: 0.15em;
-    margin-bottom: 0.6rem;
+    font-size: 0.75rem; color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.1em;
+    margin-bottom: 0.75rem;
     font-weight: 500;
   }
 
-  /* Spawn grid */
-  .spawn-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;
-    margin-bottom: 1.75rem;
+  /* Add folder section */
+  .add-folder {
+    display: flex; gap: 0.5rem;
+    margin-bottom: 1.25rem;
   }
-  .spawn-btn {
+  .add-folder input {
+    flex: 1;
+    padding: 0.6rem 0.85rem;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-left: 3px solid var(--cyan);
-    border-radius: 2px;
-    padding: 0.7rem 0.6rem;
+    border-radius: 6px;
     color: var(--text);
     font-family: var(--mono);
-    font-size: 0.72rem;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .add-folder input::placeholder { color: var(--text-secondary); }
+  .add-folder input:focus { border-color: var(--accent); }
+  .add-folder button {
+    padding: 0.6rem 1rem;
+    background: var(--accent-dim);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    border-radius: 6px;
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+  .add-folder button:hover { background: rgba(88, 166, 255, 0.25); }
+
+  /* Spawn grid */
+  .spawn-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;
+    margin-bottom: 2.5rem;
+  }
+  .spawn-btn-wrap {
+    position: relative;
+  }
+  .spawn-btn {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.85rem 2.5rem 0.85rem 1rem;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.85rem;
     font-weight: 500;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -1323,40 +1325,62 @@ var tmpl = template.Must(template.New("index").Parse(`<!DOCTYPE html>
   .spawn-btn::after {
     content: '+';
     position: absolute;
-    right: 0.6rem; top: 50%;
+    right: 0.85rem; top: 50%;
     transform: translateY(-50%);
-    color: var(--cyan-dim);
-    font-size: 1rem;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
     font-weight: 400;
   }
-  .spawn-btn:active {
-    background: rgba(0, 229, 255, 0.1);
+  .spawn-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
     border-color: var(--border-hi);
-    transform: scale(0.97);
+  }
+  .spawn-btn:active {
+    transform: scale(0.98);
   }
   .spawn-btn .dir-name {
-    color: var(--cyan);
-    font-weight: 700;
+    color: var(--accent);
+    font-weight: 600;
   }
+  .remove-dir-btn {
+    position: absolute;
+    top: -6px; right: -6px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--red-dim);
+    border: 1px solid rgba(248, 81, 73, 0.3);
+    color: var(--red);
+    font-size: 0.7rem;
+    font-family: var(--mono);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: 2;
+  }
+  .spawn-btn-wrap:hover .remove-dir-btn { opacity: 1; }
+  .remove-dir-btn:hover { background: rgba(248, 81, 73, 0.3); }
 
   /* Session cards */
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 2px;
-    padding: 0.85rem;
-    margin-bottom: 0.5rem;
+    border-radius: 6px;
+    padding: 1.25rem;
+    margin-bottom: 0.75rem;
     cursor: pointer;
     transition: all 0.15s ease;
     position: relative;
     animation: cardIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
-  .card:active {
-    background: rgba(0, 229, 255, 0.08);
-    transform: scale(0.98);
+  .card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--border-hi);
   }
-  .card-running { border-left: 3px solid var(--green); }
-  .card-stopped { border-left: 3px solid var(--red); }
+  .card:active {
+    transform: scale(0.99);
+  }
 
   @keyframes cardIn {
     from { opacity: 0; transform: translateY(8px); }
@@ -1365,78 +1389,80 @@ var tmpl = template.Must(template.New("index").Parse(`<!DOCTYPE html>
 
   .card-header {
     display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.5rem;
   }
   .card-name {
-    font-weight: 700; font-size: 0.85rem; color: #e8ecf1;
-    letter-spacing: 0.02em;
+    font-weight: 700; font-size: 1rem; color: var(--text);
+    letter-spacing: 0.01em;
   }
 
   .badge {
-    font-size: 0.55rem; font-family: var(--mono);
-    padding: 0.15rem 0.45rem; border-radius: 2px;
-    font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
-    display: flex; align-items: center; gap: 0.3rem;
+    font-size: 0.75rem; font-family: var(--mono);
+    padding: 0.2rem 0.65rem; border-radius: 9999px;
+    font-weight: 600; letter-spacing: 0.02em;
+    display: flex; align-items: center; gap: 0.35rem;
   }
   .badge-running {
     background: var(--green-dim); color: var(--green);
-    border: 1px solid rgba(0, 255, 136, 0.25);
   }
   .badge-running::before {
     content: '';
-    width: 5px; height: 5px;
+    width: 6px; height: 6px;
     background: var(--green);
     border-radius: 50%;
-    animation: pulse-green 1.5s ease-in-out infinite;
+    animation: pulse-dot 2s ease-in-out infinite;
   }
-  @keyframes pulse-green {
-    0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--green); }
-    50% { opacity: 0.4; box-shadow: none; }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
   }
   .badge-stopped {
     background: var(--red-dim); color: var(--red);
-    border: 1px solid rgba(255, 45, 85, 0.2);
   }
 
   .card-meta {
-    font-size: 0.65rem; color: var(--text-dim);
-    margin-bottom: 0.6rem;
+    font-size: 0.8rem; color: var(--text-secondary);
+    margin-bottom: 0.85rem;
     font-weight: 400;
   }
-  .card-meta span { margin-right: 0.75rem; }
+  .card-meta span { margin-right: 1rem; }
 
-  .card-actions { display: flex; gap: 0.4rem; }
+  .card-actions { display: flex; gap: 0.5rem; }
 
   .card-actions button {
-    flex: 1; padding: 0.5rem 0; border: none; border-radius: 2px;
-    font-size: 0.7rem; font-weight: 700; font-family: var(--mono);
-    text-transform: uppercase; letter-spacing: 0.06em;
+    flex: 1; padding: 0.5rem 0;
+    border-radius: 5px;
+    font-size: 0.8rem; font-weight: 600; font-family: var(--mono);
+    letter-spacing: 0.02em;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     transition: all 0.15s ease;
   }
-  .card-actions button:active { transform: scale(0.95); }
+  .card-actions button:active { transform: scale(0.96); }
   .card-actions button:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
 
   .btn-kill {
     background: var(--red-dim); color: var(--red);
-    border: 1px solid rgba(255, 45, 85, 0.3);
+    border: 1px solid rgba(248, 81, 73, 0.3);
   }
+  .btn-kill:hover { background: rgba(248, 81, 73, 0.25); }
   .btn-resume {
     background: var(--green-dim); color: var(--green);
-    border: 1px solid rgba(0, 255, 136, 0.3);
+    border: 1px solid rgba(63, 185, 80, 0.3);
   }
+  .btn-resume:hover { background: rgba(63, 185, 80, 0.25); }
   .btn-restart {
     background: var(--amber-dim); color: var(--amber);
-    border: 1px solid rgba(255, 179, 0, 0.3);
+    border: 1px solid rgba(210, 153, 34, 0.3);
   }
+  .btn-restart:hover { background: rgba(210, 153, 34, 0.25); }
 
   .empty {
-    color: var(--text-dim); text-align: center;
-    padding: 2rem 0; font-size: 0.7rem;
-    letter-spacing: 0.05em;
+    color: var(--text-secondary); text-align: center;
+    padding: 3rem 0; font-size: 0.85rem;
+    letter-spacing: 0.02em;
     border: 1px dashed var(--border);
-    border-radius: 2px;
+    border-radius: 6px;
   }
 
   /* Stagger card animations */
@@ -1456,19 +1482,28 @@ var tmpl = template.Must(template.New("index").Parse(`<!DOCTYPE html>
 
 <div class="title">claude-monitor</div>
 
+<div class="section-label">Add folder</div>
+<div class="add-folder">
+  <input type="text" id="new-dir-input" placeholder="/path/to/project">
+  <button onclick="addDir()">Add</button>
+</div>
+
 <div class="section-label">Launch session</div>
 <div class="spawn-grid">
   {{range .AllowedDirs}}
-  <button class="spawn-btn" onclick="spawnIn('{{.}}')">
-    <span class="dir-name">{{.}}</span>
-  </button>
+  <div class="spawn-btn-wrap">
+    <button class="spawn-btn" onclick="spawnIn('{{.}}')">
+      <span class="dir-name">{{.}}</span>
+    </button>
+    <button class="remove-dir-btn" onclick="removeDir('{{.}}')" title="Remove directory">x</button>
+  </div>
   {{end}}
 </div>
 
 <div class="section-label">Sessions</div>
 <div id="instances">
   {{range .Instances}}
-  <div class="card card-{{.Status}}" onclick="location.href='/session/{{.Name}}'">
+  <div class="card" onclick="location.href='/session/{{.Name}}'">
     <div class="card-header">
       <span class="card-name">{{.Name}}</span>
       <span class="badge badge-{{.Status}}">{{.Status}}</span>
@@ -1521,6 +1556,48 @@ async function spawnIn(dir) {
   const form = new URLSearchParams({ dir });
   try {
     const res = await fetch('/spawn', { method: 'POST', body: form });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      toast(data.message, true);
+      setTimeout(() => location.reload(), 800);
+    } else {
+      toast(data.message, false);
+    }
+  } catch (e) {
+    toast('Request failed', false);
+  }
+}
+
+async function addDir() {
+  const input = document.getElementById('new-dir-input');
+  const dir = input.value.trim();
+  if (!dir) return;
+  try {
+    const res = await fetch('/api/dirs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dir: dir })
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      toast(data.message, true);
+      setTimeout(() => location.reload(), 800);
+    } else {
+      toast(data.message, false);
+    }
+  } catch (e) {
+    toast('Request failed', false);
+  }
+}
+
+async function removeDir(dir) {
+  if (!confirm('Remove ' + dir + ' from allowed directories?')) return;
+  try {
+    const res = await fetch('/api/dirs', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dir: dir })
+    });
     const data = await res.json();
     if (data.status === 'ok') {
       toast(data.message, true);
