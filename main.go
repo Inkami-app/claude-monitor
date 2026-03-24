@@ -1965,7 +1965,9 @@ function connectWS() {
 
   ws.onmessage = (evt) => {
     const data = new Uint8Array(evt.data);
-    term.write(data);
+    term.write(data, () => {
+      term.scrollToBottom();
+    });
   };
 
   ws.onclose = () => {
