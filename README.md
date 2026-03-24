@@ -1,3 +1,5 @@
+> **Built by [Inkami](https://inkami.app)** — a second brain you actually own. Think, plan, write, publish — stored where you choose, accessible everywhere.
+
 # claude-monitor
 
 A web dashboard for spawning, monitoring, and managing multiple Claude Code sessions from any browser.
@@ -19,13 +21,13 @@ Claude Code's built-in remote control feature is unreliable -- it drops connecti
 ## Install
 
 ```
-go install github.com/anthropics/claude-monitor@latest
+go install github.com/inkami-app/claude-monitor@latest
 ```
 
 Or build from source:
 
 ```
-git clone https://github.com/anthropics/claude-monitor.git
+git clone https://github.com/inkami-app/claude-monitor.git
 cd claude-monitor
 go build -o claude-monitor .
 ```
