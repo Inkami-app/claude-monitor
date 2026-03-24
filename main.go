@@ -387,7 +387,7 @@ func main() {
 				Certificates: []tls.Certificate{cert},
 			},
 		}
-		log.Printf("claude-monitor listening on https://valence.tail2cb751.ts.net%s", addr)
+		log.Printf("claude-monitor listening on https://0.0.0.0%s", addr)
 		log.Fatal(srv.ListenAndServeTLS("", ""))
 	} else {
 		log.Printf("claude-monitor listening on http://localhost%s (no TLS certs configured)", addr)
