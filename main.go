@@ -1,7 +1,11 @@
 package main
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"crypto/subtle"
 	"crypto/tls"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -347,6 +351,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", handleIndex)
+	mux.HandleFunc("/login", handleLogin)
 	mux.HandleFunc("/session/", handleSession)
 	mux.HandleFunc("/spawn", handleSpawn)
 	mux.HandleFunc("/kill/", handleKill)
@@ -355,6 +360,8 @@ func main() {
 	mux.HandleFunc("/api/instances", handleAPIInstances)
 	mux.HandleFunc("/api/output/", handleAPIOutput)
 	mux.HandleFunc("/ws/", handleWS)
+
+	handler := authMiddleware(mux)
 
 	addr := fmt.Sprintf(":%d", config.Port)
 
@@ -365,7 +372,7 @@ func main() {
 		}
 		srv := &http.Server{
 			Addr:    addr,
-			Handler: mux,
+			Handler: handler,
 			TLSConfig: &tls.Config{
 				Certificates: []tls.Certificate{cert},
 			},
@@ -374,7 +381,7 @@ func main() {
 		log.Fatal(srv.ListenAndServeTLS("", ""))
 	} else {
 		log.Printf("claude-monitor listening on http://localhost%s (no TLS certs configured)", addr)
-		log.Fatal(http.ListenAndServe(addr, mux))
+		log.Fatal(http.ListenAndServe(addr, handler))
 	}
 }
 
@@ -654,6 +661,180 @@ func killInstance(name string) error {
 	}
 	return nil
 }
+
+// --- Auth Middleware & Helpers ---
+
+// authMiddleware enforces authentication when config.AuthToken is set.
+// It passes through all requests if no token is configured.
+// The /login path is always accessible without auth.
+func authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// No auth configured — pass through
+		if config.AuthToken == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Always allow access to /login
+		if r.URL.Path == "/login" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Check Authorization: Bearer <token>
+		if auth := r.Header.Get("Authorization"); strings.HasPrefix(auth, "Bearer ") {
+			token := strings.TrimPrefix(auth, "Bearer ")
+			if subtle.ConstantTimeCompare([]byte(token), []byte(config.AuthToken)) == 1 {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+
+		// Check auth cookie
+		if cookie, err := r.Cookie("claude-monitor-auth"); err == nil {
+			if validAuthCookie(cookie.Value) {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+
+		// Not authenticated — redirect to login
+		http.Redirect(w, r, "/login", http.StatusFound)
+	})
+}
+
+// makeAuthCookie returns an HMAC-SHA256 of "claude-monitor-auth" keyed with
+// config.AuthToken, hex-encoded. This is the value stored in the auth cookie.
+func makeAuthCookie() string {
+	mac := hmac.New(sha256.New, []byte(config.AuthToken))
+	mac.Write([]byte("claude-monitor-auth"))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+// validAuthCookie performs a constant-time comparison of a cookie value
+// against the expected HMAC.
+func validAuthCookie(value string) bool {
+	expected := makeAuthCookie()
+	return subtle.ConstantTimeCompare([]byte(value), []byte(expected)) == 1
+}
+
+// handleLogin serves the login page (GET) and processes login attempts (POST).
+func handleLogin(w http.ResponseWriter, r *http.Request) {
+	if config.AuthToken == "" {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	if r.Method == "GET" {
+		loginTmpl.Execute(w, map[string]string{})
+		return
+	}
+
+	if r.Method == "POST" {
+		r.ParseForm()
+		token := r.FormValue("token")
+
+		if subtle.ConstantTimeCompare([]byte(token), []byte(config.AuthToken)) != 1 {
+			loginTmpl.Execute(w, map[string]string{"Error": "Invalid token"})
+			return
+		}
+
+		// Set auth cookie
+		http.SetCookie(w, &http.Cookie{
+			Name:     "claude-monitor-auth",
+			Value:    makeAuthCookie(),
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   config.CertFile != "",
+			SameSite: http.SameSiteStrictMode,
+			MaxAge:   30 * 24 * 60 * 60, // 30 days
+		})
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+}
+
+var loginTmpl = template.Must(template.New("login").Parse(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login — claude-monitor</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+    background: #05060f; color: #c8d6e5;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh;
+  }
+  .login-box {
+    background: rgba(0, 229, 255, 0.04);
+    border: 1px solid rgba(0, 229, 255, 0.12);
+    border-radius: 4px;
+    padding: 2rem;
+    width: 100%; max-width: 360px;
+  }
+  h1 {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #00e5ff;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+  input[type="password"] {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    background: rgba(0, 229, 255, 0.04);
+    border: 1px solid rgba(0, 229, 255, 0.2);
+    border-radius: 2px;
+    color: #c8d6e5;
+    font-family: inherit;
+    font-size: 0.8rem;
+    outline: none;
+    margin-bottom: 1rem;
+  }
+  input[type="password"]:focus {
+    border-color: #00e5ff;
+  }
+  button {
+    width: 100%;
+    padding: 0.6rem;
+    background: rgba(0, 229, 255, 0.1);
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    border-radius: 2px;
+    color: #00e5ff;
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+  }
+  button:hover { background: rgba(0, 229, 255, 0.15); }
+  .error {
+    color: #ff2d55;
+    font-size: 0.72rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="login-box">
+  <h1>claude-monitor</h1>
+  {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
+  <form method="POST" action="/login">
+    <input type="password" name="token" placeholder="Auth token" autofocus>
+    <button type="submit">Login</button>
+  </form>
+</div>
+</body>
+</html>`))
 
 // --- HTTP Handlers ---
 

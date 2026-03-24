@@ -1,6 +1,8 @@
 package main
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -219,5 +221,61 @@ func TestDefaultDirIsHome(t *testing.T) {
 	}
 	if len(config.AllowedDirs) != 1 || config.AllowedDirs[0] != "~" {
 		t.Errorf("default dirs = %v, want [~]", config.AllowedDirs)
+	}
+}
+
+func TestAuthMiddleware(t *testing.T) {
+	origConfig := config
+	defer func() { config = origConfig }()
+
+	config.AuthToken = "test-secret"
+
+	handler := authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+		w.Write([]byte("ok"))
+	}))
+
+	// No auth — should redirect to /login
+	req := httptest.NewRequest("GET", "/", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != 302 {
+		t.Errorf("no auth: got %d, want 302", rec.Code)
+	}
+
+	// Bearer token — should pass
+	req = httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("Authorization", "Bearer test-secret")
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Errorf("bearer: got %d, want 200", rec.Code)
+	}
+
+	// Bad bearer — should redirect
+	req = httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("Authorization", "Bearer wrong")
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != 302 {
+		t.Errorf("bad bearer: got %d, want 302", rec.Code)
+	}
+}
+
+func TestAuthDisabledWhenNoToken(t *testing.T) {
+	origConfig := config
+	defer func() { config = origConfig }()
+
+	config.AuthToken = ""
+
+	handler := authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+	}))
+
+	req := httptest.NewRequest("GET", "/", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Errorf("no token configured: got %d, want 200", rec.Code)
 	}
 }
