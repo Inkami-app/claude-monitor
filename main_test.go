@@ -177,3 +177,47 @@ func TestSaveLoadSessions(t *testing.T) {
 		t.Errorf("raw output = %q, want ANSI hello world", string(raw))
 	}
 }
+
+func TestCLIOverridesConfig(t *testing.T) {
+	origConfig := config
+	defer func() { config = origConfig }()
+
+	tmpDir := t.TempDir()
+	cfgFile := filepath.Join(tmpDir, "config.json")
+	os.WriteFile(cfgFile, []byte(`{"port": 9999, "allowed_dirs": ["~/old"]}`), 0644)
+
+	config = Config{}
+	loadConfigFrom(cfgFile)
+	if config.Port != 9999 {
+		t.Errorf("port = %d, want 9999", config.Port)
+	}
+	if len(config.AllowedDirs) != 1 || config.AllowedDirs[0] != "~/old" {
+		t.Errorf("allowed_dirs = %v, want [~/old]", config.AllowedDirs)
+	}
+
+	applyCLIOverrides(8080, "", "", "", []string{"~/new"}, []string{"--verbose"})
+	if config.Port != 8080 {
+		t.Errorf("port after override = %d, want 8080", config.Port)
+	}
+	if len(config.AllowedDirs) != 1 || config.AllowedDirs[0] != "~/new" {
+		t.Errorf("allowed_dirs after override = %v, want [~/new]", config.AllowedDirs)
+	}
+	if len(config.ClaudeFlags) != 1 || config.ClaudeFlags[0] != "--verbose" {
+		t.Errorf("claude_flags after override = %v, want [--verbose]", config.ClaudeFlags)
+	}
+}
+
+func TestDefaultDirIsHome(t *testing.T) {
+	origConfig := config
+	defer func() { config = origConfig }()
+
+	config = Config{}
+	loadConfigFrom("/nonexistent/path")
+	applyCLIOverrides(0, "", "", "", nil, nil)
+	if config.Port != 7777 {
+		t.Errorf("default port = %d, want 7777", config.Port)
+	}
+	if len(config.AllowedDirs) != 1 || config.AllowedDirs[0] != "~" {
+		t.Errorf("default dirs = %v, want [~]", config.AllowedDirs)
+	}
+}

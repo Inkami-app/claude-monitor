@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"html/template"
 	"log"
@@ -69,15 +70,11 @@ func randomName() string {
 	return adjectives[rand.Intn(len(adjectives))] + "-" + nouns[rand.Intn(len(nouns))]
 }
 
-var allowedDirs = []string{
-	"~/src",
-	"~/src/inkami",
-	"~/src/blx",
-	"~/src/kura",
-	"~/src/claude-monitor",
-}
-
 func expandDir(dir string) string {
+	if dir == "~" {
+		home, _ := os.UserHomeDir()
+		return home
+	}
 	if strings.HasPrefix(dir, "~/") {
 		home, _ := os.UserHomeDir()
 		return filepath.Join(home, dir[2:])
@@ -87,7 +84,7 @@ func expandDir(dir string) string {
 
 func isAllowedDir(dir string) bool {
 	expanded := expandDir(dir)
-	for _, d := range allowedDirs {
+	for _, d := range config.AllowedDirs {
 		if expandDir(d) == expanded {
 			return true
 		}
@@ -119,9 +116,12 @@ type SessionRecord struct {
 }
 
 type Config struct {
-	Port     int    `json:"port"`
-	CertFile string `json:"cert_file"`
-	KeyFile  string `json:"key_file"`
+	Port        int      `json:"port"`
+	CertFile    string   `json:"cert_file"`
+	KeyFile     string   `json:"key_file"`
+	AuthToken   string   `json:"auth_token"`
+	AllowedDirs []string `json:"allowed_dirs"`
+	ClaudeFlags []string `json:"claude_flags"`
 }
 
 type RingBuffer struct {
@@ -283,7 +283,18 @@ var (
 var sessionOrder []string // tracks instance names in spawn order
 
 func main() {
-	loadConfig()
+	flagPort := flag.Int("port", 0, "HTTP port (default 7777)")
+	flagCert := flag.String("cert-file", "", "TLS certificate file")
+	flagKey := flag.String("key-file", "", "TLS key file")
+	flagAuth := flag.String("auth-token", "", "Authentication token")
+	var flagDirs stringSlice
+	flag.Var(&flagDirs, "dir", "Allowed directory (repeatable)")
+	var flagClaudeFlags stringSlice
+	flag.Var(&flagClaudeFlags, "claude-flag", "Flag to pass to claude CLI (repeatable)")
+	flag.Parse()
+
+	loadConfigFrom(configPath())
+	applyCLIOverrides(*flagPort, *flagCert, *flagKey, *flagAuth, flagDirs, flagClaudeFlags)
 
 	loadSessions()
 
@@ -449,21 +460,47 @@ func loadSessions() {
 	log.Printf("Loaded %d saved sessions", len(records))
 }
 
-func loadConfig() {
+func loadConfigFrom(path string) {
 	config = Config{Port: 7777}
-
-	data, err := os.ReadFile(configPath())
+	data, err := os.ReadFile(path)
 	if err != nil {
-		log.Printf("No config at %s, using defaults", configPath())
 		return
 	}
-	if err := json.Unmarshal(data, &config); err != nil {
-		log.Printf("Bad config: %v, using defaults", err)
-	}
+	json.Unmarshal(data, &config)
 	if config.Port == 0 {
 		config.Port = 7777
 	}
 }
+
+func applyCLIOverrides(port int, certFile, keyFile, authToken string, dirs []string, claudeFlags []string) {
+	if port != 0 {
+		config.Port = port
+	}
+	if certFile != "" {
+		config.CertFile = certFile
+	}
+	if keyFile != "" {
+		config.KeyFile = keyFile
+	}
+	if authToken != "" {
+		config.AuthToken = authToken
+	}
+	if len(dirs) > 0 {
+		config.AllowedDirs = dirs
+	}
+	if len(claudeFlags) > 0 {
+		config.ClaudeFlags = claudeFlags
+	}
+	if len(config.AllowedDirs) == 0 {
+		config.AllowedDirs = []string{"~"}
+	}
+}
+
+// stringSlice implements flag.Value for repeatable flags.
+type stringSlice []string
+
+func (s *stringSlice) String() string { return strings.Join(*s, ",") }
+func (s *stringSlice) Set(v string) error { *s = append(*s, v); return nil }
 
 func spawnInstance(name, dir string, flags []string, resume bool) error {
 	mu.Lock()
@@ -605,7 +642,7 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		Instances   []*Instance
 		AllowedDirs []string
-	}{ordered, allowedDirs}
+	}{ordered, config.AllowedDirs}
 
 	tmpl.Execute(w, data)
 }
@@ -638,7 +675,7 @@ func handleSpawn(w http.ResponseWriter, r *http.Request) {
 	}
 	mu.RUnlock()
 
-	flags := []string{"--dangerously-skip-permissions", "--chrome", "--remote-control"}
+	flags := config.ClaudeFlags
 
 	if err := spawnInstance(name, expandDir(dir), flags, false); err != nil {
 		jsonError(w, err.Error(), 400)
