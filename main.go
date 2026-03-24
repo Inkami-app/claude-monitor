@@ -560,7 +560,8 @@ func spawnInstance(name, dir string, flags []string, resume bool) error {
 		return fmt.Errorf("instance %q already running", name)
 	}
 
-	args := append([]string{}, flags...)
+	args := []string{"--remote-control"}
+	args = append(args, flags...)
 	if resume {
 		args = append(args, "-r", name)
 	} else {

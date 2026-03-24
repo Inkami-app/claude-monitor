@@ -50,7 +50,6 @@ func runSetupWizard() (*Config, error) {
 	flagOptions := []huh.Option[string]{
 		huh.NewOption("--dangerously-skip-permissions", "--dangerously-skip-permissions"),
 		huh.NewOption("--chrome", "--chrome"),
-		huh.NewOption("--remote-control", "--remote-control"),
 		huh.NewOption("--verbose", "--verbose"),
 	}
 
