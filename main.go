@@ -771,66 +771,80 @@ var loginTmpl = template.Must(template.New("login").Parse(`<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d1117">
 <title>Login — claude-monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
-    background: #05060f; color: #c8d6e5;
+    background: #0d1117; color: #e2e8f0;
     display: flex; align-items: center; justify-content: center;
     min-height: 100vh;
+    padding: 1rem;
   }
   .login-box {
-    background: rgba(0, 229, 255, 0.04);
-    border: 1px solid rgba(0, 229, 255, 0.12);
-    border-radius: 4px;
-    padding: 2rem;
-    width: 100%; max-width: 360px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 2.5rem 2rem;
+    width: 100%; max-width: 380px;
   }
   h1 {
-    font-size: 0.7rem;
+    font-size: 1rem;
     font-weight: 700;
-    color: #00e5ff;
-    text-transform: uppercase;
-    letter-spacing: 0.25em;
-    margin-bottom: 1.5rem;
+    color: #e2e8f0;
+    margin-bottom: 2rem;
     text-align: center;
+  }
+  label {
+    display: block;
+    font-size: 0.75rem;
+    color: #8b949e;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
   }
   input[type="password"] {
     width: 100%;
-    padding: 0.6rem 0.8rem;
-    background: rgba(0, 229, 255, 0.04);
-    border: 1px solid rgba(0, 229, 255, 0.2);
-    border-radius: 2px;
-    color: #c8d6e5;
+    padding: 0.7rem 0.85rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: #e2e8f0;
     font-family: inherit;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     outline: none;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    transition: border-color 0.15s ease;
   }
+  input[type="password"]::placeholder { color: #8b949e; }
   input[type="password"]:focus {
-    border-color: #00e5ff;
+    border-color: #58a6ff;
   }
   button {
     width: 100%;
-    padding: 0.6rem;
-    background: rgba(0, 229, 255, 0.1);
-    border: 1px solid rgba(0, 229, 255, 0.3);
-    border-radius: 2px;
-    color: #00e5ff;
+    padding: 0.7rem;
+    background: rgba(88, 166, 255, 0.15);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    border-radius: 6px;
+    color: #58a6ff;
     font-family: inherit;
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+    font-size: 0.85rem;
+    font-weight: 600;
     cursor: pointer;
+    transition: all 0.15s ease;
   }
-  button:hover { background: rgba(0, 229, 255, 0.15); }
+  button:hover { background: rgba(88, 166, 255, 0.25); }
   .error {
-    color: #ff2d55;
-    font-size: 0.72rem;
-    margin-bottom: 1rem;
+    color: #f85149;
+    font-size: 0.85rem;
+    margin-bottom: 1.25rem;
     text-align: center;
+    padding: 0.6rem;
+    background: rgba(248, 81, 73, 0.1);
+    border: 1px solid rgba(248, 81, 73, 0.2);
+    border-radius: 6px;
   }
 </style>
 </head>
@@ -839,7 +853,8 @@ var loginTmpl = template.Must(template.New("login").Parse(`<!DOCTYPE html>
   <h1>claude-monitor</h1>
   {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
   <form method="POST" action="/login">
-    <input type="password" name="token" placeholder="Auth token" autofocus>
+    <label for="token-input">Auth token</label>
+    <input type="password" id="token-input" name="token" placeholder="Enter your token" autofocus>
     <button type="submit">Login</button>
   </form>
 </div>
