@@ -293,8 +293,24 @@ func main() {
 	flag.Var(&flagClaudeFlags, "claude-flag", "Flag to pass to claude CLI (repeatable)")
 	flag.Parse()
 
-	loadConfigFrom(configPath())
-	applyCLIOverrides(*flagPort, *flagCert, *flagKey, *flagAuth, flagDirs, flagClaudeFlags)
+	// Determine whether any CLI flags were explicitly provided.
+	cliProvided := *flagPort != 0 || *flagCert != "" || *flagKey != "" ||
+		*flagAuth != "" || len(flagDirs) > 0 || len(flagClaudeFlags) > 0
+
+	if needsSetup() && isTerminal() && !cliProvided {
+		// First run: launch interactive setup wizard.
+		cfg, err := runSetupWizard()
+		if err != nil {
+			log.Fatalf("Setup wizard failed: %v", err)
+		}
+		config = *cfg
+		persistConfig()
+		fmt.Printf("\nConfig saved to %s\n", configPath())
+	} else {
+		// Normal path: load existing config, apply CLI overrides.
+		loadConfigFrom(configPath())
+		applyCLIOverrides(*flagPort, *flagCert, *flagKey, *flagAuth, flagDirs, flagClaudeFlags)
+	}
 
 	loadSessions()
 
@@ -493,6 +509,23 @@ func applyCLIOverrides(port int, certFile, keyFile, authToken string, dirs []str
 	}
 	if len(config.AllowedDirs) == 0 {
 		config.AllowedDirs = []string{"~"}
+	}
+}
+
+// persistConfig writes the current config to configPath() as indented JSON.
+func persistConfig() {
+	data, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		log.Printf("persistConfig marshal: %v", err)
+		return
+	}
+	dir := filepath.Dir(configPath())
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		log.Printf("persistConfig mkdir: %v", err)
+		return
+	}
+	if err := os.WriteFile(configPath(), data, 0o644); err != nil {
+		log.Printf("persistConfig write: %v", err)
 	}
 }
 
