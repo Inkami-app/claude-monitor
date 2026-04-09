@@ -1,4 +1,4 @@
-module claude-monitor
+module github.com/Inkami-app/claude-monitor
 
 go 1.25.6
 
